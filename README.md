@@ -8,4 +8,6 @@ To start the slide show:
 
 Edit the [slides.md](./slides.md) to see the changes.
 
+Uses https://github.com/vasilvestre/bookstore
+
 Learn more about Slidev on [documentations](https://sli.dev/).
