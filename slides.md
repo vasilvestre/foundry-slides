@@ -312,7 +312,7 @@ title: Les Storys
 
 ## Les storys
 
-<img src="make_story.png">
+<img src="/make_story.png">
 
 ---
 layout: end
