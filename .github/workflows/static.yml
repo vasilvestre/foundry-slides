@@ -38,7 +38,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
       - name: Build blog
-        run:  npx slidev build --base=/extending-sylius-1.12-09-22/
+        run:  npx slidev build --base=/foundry-slides/
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
         with:
