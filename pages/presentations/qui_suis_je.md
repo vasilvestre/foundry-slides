@@ -1,8 +1,8 @@
 ---
 layout: center
 class: text-center
-title: Présentation
-level: 1
+title: Qui suis-je ?
+
 ---
 
 # Qui suis-je ?

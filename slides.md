@@ -5,25 +5,31 @@ background: https://source.unsplash.com/1920x1080/?developer
 highlighter: shiki
 lineNumbers: true
 info: false
-css: unocss
-hideInToc: true 
+css: unocss 
 ---
-# CREER DES FIXTURES AVEC FOUNDRY
+# FOUNDRY : FACTORY SOUS STEROÎDES
+
+## CREER DES FIXTURES
 
 Pour Sylius, Symfony et n'importe quel projet PHP en fait
 
-<!--
-The last comment block of each slide will be treated as slide notes. It will be visible and editable in Presenter Mode along with the slide. [Read more in the docs](https://sli.dev/guide/syntax.html#notes)
--->
-
 ---
 layout: center
-hideInToc: true
 ---
 
 # De quoi on parle ?
 
-<Toc />
+- Qui suis-je ?
+- Qu'est-ce que Foundry ?
+- Exemples
+  - Exemple de la collection de livre n°1
+  - Exemple de la collection de livre n°2
+- On y verra :
+  - Debug
+  - Fixtures
+  - Reusable Model Factory "States"
+  - Beaucoup de fonctions utiles
+- Au sein de frameworks
 
 ---
 layout: center
@@ -33,14 +39,15 @@ src: ./pages/presentations.md
 
 ---
 layout: section
-title: Foundry
-level: 1
 ---
 # zenstruck/foundry
 
+### Kevin Bond : Open Source, PHP, Symfony Developer, Symfony Core Member.
+
+Package officiellement recommandé par Symfony
+
 ---
 layout: center
-hideInToc: true
 ---
 
 Foundry permet de créer des fixtures :
@@ -54,16 +61,18 @@ Foundry permet de créer des fixtures :
 
 </v-clicks>
 
+<!--
+Expliquer pour foundry "expressive"
+-->
+
 ---
 layout: center
-hideInToc: true
 ---
 
 <img src="/composer_require.png" />
 
 ---
 layout: center
-hideInToc: true
 ---
 
 <img src="/make_factory.png" />
@@ -72,7 +81,6 @@ hideInToc: true
 
 ---
 layout: default
-hideInToc: true
 ---
 
 ```php
@@ -107,7 +115,6 @@ final class UserFactory extends ModelFactory
 
 ---
 layout: default
-hideInToc: true
 ---
 
 ```php {monaco-diff}
@@ -170,7 +177,12 @@ final class UserFactory extends ModelFactory
 
 ---
 layout: center
-title: Exemple de la collection de livre n°1
+---
+
+# Exemples
+
+---
+layout: center
 ---
 
 # Exemple : collection de livre
@@ -179,7 +191,6 @@ title: Exemple de la collection de livre n°1
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -200,7 +211,6 @@ class ReviewTest extends ApiTestCase
 
 ---
 layout: center
-hideInToc: true
 ---
 
 # Quelques traits
@@ -214,7 +224,30 @@ hideInToc: true
 
 ---
 layout: center
-hideInToc: true
+---
+
+```php
+class ReviewTest extends AbstractTest
+{
+    use ResetDatabase, Factories;
+
+    public function testUserLeaveAReview(): void
+    {
+        $book = BookFactory::createOne();
+        $user = UserFactory::createOne();
+        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
+        static::createClientWithCredentials($token)->request('POST', sprintf("/books/%s/reviews", $book->getId()), [
+            'json' => [
+                'content' => 'Lorem ipsum dolor sit amet',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $this->assertJsonContains(['@id' => '/reviews/1']);
+    }
+}
+```
+---
+layout: center
 ---
 
 ```php{3,7,8,9,15-16}
@@ -240,7 +273,83 @@ class ReviewTest extends AbstractTest
 
 ---
 layout: center
-title: Exemple de la collection de livre n°2
+title: Les stories
+
+---
+
+## Les stories
+
+---
+layout: center
+hideOnToc: true
+---
+
+<img src="/make_story.png">
+
+---
+layout: center
+---
+
+```php
+final class DefaultBookStory extends Story
+{
+    public function build(): void
+    {
+        BookFactory::createOne();
+    }
+}
+```
+
+```php
+class ReviewTest extends AbstractTest
+{
+    public function testUserLeaveAReviewStory(): void
+    {
+        DefaultBookStory::load();
+        $user = UserFactory::createOne();
+        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
+        static::createClientWithCredentials($token)->request('POST', '/books/1/reviews', [
+            'json' => [
+                'content' => 'Lorem ipsum dolor sit amet',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $this->assertJsonContains(['@id' => '/reviews/1', 'book' => '/books/1']);
+    }
+```
+
+---
+layout: center
+---
+
+```php{1-7,13}
+final class DefaultBookStory extends Story
+{
+    public function build(): void
+    {
+        BookFactory::createOne();
+    }
+}
+
+class ReviewTest extends AbstractTest
+{
+    public function testUserLeaveAReviewStory(): void
+    {
+        DefaultBookStory::load();
+        $user = UserFactory::createOne();
+        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
+        static::createClientWithCredentials($token)->request('POST', '/books/1/reviews', [
+            'json' => [
+                'content' => 'Lorem ipsum dolor sit amet',
+            ],
+        ]);
+        $this->assertResponseIsSuccessful();
+        $this->assertJsonContains(['@id' => '/reviews/1', 'book' => '/books/1']);
+    }
+```
+
+---
+layout: center
 ---
 
 # Exemple : collection de livre
@@ -249,7 +358,6 @@ title: Exemple de la collection de livre n°2
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -257,7 +365,7 @@ class ReviewTest extends AbstractTest
 {
     use ResetDatabase, Factories;
 
-    public function testAuthorGetReviews(): void
+    public function testGetReviews(): void
     {
         $book = BookFactory::createOne();
         static::createClient()->request('GET', '/book/1/reviews');
@@ -269,14 +377,12 @@ class ReviewTest extends AbstractTest
 
 ---
 layout: center
-hideInToc: true
 ---
 
-# Il faut ajouter des reviws à mon livre, non ? 
+# Il faut ajouter des reviews à mon livre, non ? 
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -284,7 +390,7 @@ class ReviewTest extends AbstractTest
 {
     use ResetDatabase, Factories;
 
-    public function testAuthorGetReviews(): void
+    public function testGetReviews(): void
     {
         $book = BookFactory::createOne();
         while(!$jenAiMarre) {
@@ -305,7 +411,6 @@ class ReviewTest extends AbstractTest
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php{8-16}
@@ -313,7 +418,7 @@ class ReviewTest extends AbstractTest
 {
     use ResetDatabase, Factories;
 
-    public function testAuthorGetReviews(): void
+    public function testGetReviews(): void
     {
         $book = BookFactory::createOne();
         while(!$jenAiMarre) {
@@ -334,7 +439,6 @@ class ReviewTest extends AbstractTest
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ## Plusieurs soucis
@@ -348,7 +452,6 @@ hideInToc: true
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -356,28 +459,29 @@ class ReviewTest extends AbstractTest
 {
     use ResetDatabase, Factories;
 
-    public function testAuthorGetReviews(): void
+    public function testGetReviews(): void
     {
-        $user = UserFactory::new()->asAuthor()->createOne();
-        ReviewFactory::createMany(50, function($user) {
+        ReviewFactory::createMany(50, function() {
             return [
-                'book' => BookFactory::findOrCreate(['isbn' => 143987391287, 'author' => $user->getAuthor()]),
+                'book' => BookFactory::findOrCreate(['isbn' => 143987391287]),
                 'reviewer' => UserFactory::randomOrCreate(),
             ];
         });
-        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
-        static::createClientWithCredentials($token)->request('GET', '/books/1/reviews');
+        static::createClient()->request('GET', '/book/1/reviews');
         $this->assertResponseIsSuccessful();
         $this->assertJsonContains(['@id' => '/books/1/reviews']);
     }
 }
 ```
 
-<!-- Switch rapidement our highlight les défauts -->
+<!--
+ISBN, pas insb 
+
+Switch rapidement our highlight les défauts 
+-->
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php{7-14}
@@ -385,162 +489,85 @@ class ReviewTest extends AbstractTest
 {
     use ResetDatabase, Factories;
 
-    public function testAuthorGetReviews(): void
+    public function testGetReviews(): void
     {
-        $user = UserFactory::new()->asAuthor()->createOne();
-        ReviewFactory::createMany(50, function($user) {
+        ReviewFactory::createMany(50, function() {
             return [
-                'book' => BookFactory::findOrCreate(['isbn' => 143987391287, 'author' => $user->getAuthor()]),
+                'book' => BookFactory::findOrCreate(['isbn' => 143987391287]),
                 'reviewer' => UserFactory::randomOrCreate(),
             ];
         });
-        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
-        static::createClientWithCredentials($token)->request('GET', '/books/1/reviews');
+        static::createClient()->request('GET', '/book/1/reviews');
         $this->assertResponseIsSuccessful();
         $this->assertJsonContains(['@id' => '/books/1/reviews']);
     }
 }
-```
-
----
-layout: center
-title: Reusable Model Factory "States"
-level: 2
----
-
-# T'as ajouté un AsAuthor ?
-
-<v-clicks>
-
-## Les "states" (pas les USA)
-
-</v-clicks>
-
----
-layout: center
-hideInToc: true
----
-
-```php
-final class PostFactory extends ModelFactory
-{
-    // ...
-
-    public function published(): self
-    {
-        // call setPublishedAt() and pass a random DateTime
-        return $this->addState(['published_at' => self::faker()->dateTime()]);
-    }
-
-    public function unpublished(): self
-    {
-        return $this->addState(['published_at' => null]);
-    }
-
-    public function withViewCount(int $count = null): self
-    {
-        return $this->addState(function () use ($count) {
-            return ['view_count' => $count ?? self::faker()->numberBetween(0, 10000)];
-        });
-    }
-}
-```
----
-layout: center
-hideInToc: true
----
-
-```php
-final class UserFactory extends ModelFactory
-{
-    /**
-     * @todo inject services if required
-     */
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-    protected function getDefaults(): array
-    {
-        return [
-            'email' => self::faker()->email(),
-            'password' => 'password',
-            'roles' => [],
-        ];
-    }
-
-    public function asAuthor(): self
-    {
-        return $this->addState(['author' => AuthorFactory::new()->create()]);
-    }
 ```
 
 ---
 layout: center
 title: Beaucoup de fonctionnalités
-level: 2
+
 ---
 
 # On peut faire autrement ?
 
-new(), State, findOrCreate, randomOrCreate et les autres fonctions ?
-
-
-<!--
-Je reprend mon exemple précédent
--->
+new(), findOrCreate, randomOrCreate et les autres fonctions ?
 
 ---
 layout: center
-hideInToc: true
+---
+
+# Les states ?
+
+<v-clicks>
+
+### (pas les USA)
+
+</v-clicks>
+
+---
+layout: center
 ---
 
 ```php
-class ReviewTest extends AbstractTest
+final class BookFactory extends ModelFactory
 {
-    public function testAuthorGetReviews(): void
+    protected function getDefaults(): array
     {
-        $user = UserFactory::new()->asAuthor()->createOne();
-        ReviewFactory::createMany(50, function($user) {
-            return [
-                'book' => BookFactory::findOrCreate(['isbn' => 143987391287, 'author' => $user->getAuthor()]),
-                'reviewer' => UserFactory::randomOrCreate(),
-            ];
-        });
-        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
-        static::createClientWithCredentials($token)->request('GET', '/books/1/reviews');
-        $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['@id' => '/books/1/reviews']);
+        return [
+            'isbn' => self::faker()->isbn10(),
+            'name' => self::faker()->name(),
+            'author' => AuthorFactory::randomOrCreate(),
+        ];
     }
-}
+    
+    public function withIsbn($isbn): self
+    {
+        return $this->addState(['isbn' => $isbn]);
+    }
 ```
-
-<!-- Switch rapidement our highlight les défauts -->
 
 ---
 layout: center
-hideInToc: true
 ---
 
-```php{13,15}
-class ReviewTest extends AbstractTest
+```php{12-15}
+final class BookFactory extends ModelFactory
 {
-    public function testAuthorGetReviews(): void
+    protected function getDefaults(): array
     {
-        $user = UserFactory::new()->asAuthor()->createOne();
-        ReviewFactory::createMany(50, function($user) {
-            return [
-                'book' => BookFactory::findOrCreate(['isbn' => 143987391287, 'author' => $user->getAuthor()]),
-                'reviewer' => UserFactory::randomOrCreate(),
-            ];
-        });
-        $token = $this->getToken(['email' => $user->getEmail(), 'password' => $user->getPassword()]);
-        static::createClientWithCredentials($token)->request('GET', '/books/1/reviews');
-        $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['@id' => '/books/1/reviews']);
+        return [
+            'isbn' => self::faker()->isbn10(),
+            'name' => self::faker()->name(),
+            'author' => AuthorFactory::randomOrCreate(),
+        ];
     }
-}
+    
+    public function withIsbn($isbn): self
+    {
+        return $this->addState(['isbn' => $isbn]);
+    }
 ```
 
 <!--
@@ -548,8 +575,7 @@ Le "find" arrive après
 -->
 
 ---
-layout: center
-hideInToc: true
+layout: default
 ---
 
 ```php
@@ -562,21 +588,16 @@ protected function getDefaults(): array
     ];
 }
 ```
-```php{1-7,10-16,18-21,23-33}
+
+```php
 public function testAuthorGetReviewFind(): void
     {
-        BookFactory::new(['isbn' => 193847625, 'authors' => [
-            AuthorFactory::new(['lastname' => 'hooper', 'firstname' => 'grace'])],
-        ])->create();
+        BookFactory::new()->withIsbn(193847625)->create();
         ReviewFactory::createMany(50, [
             'book' => BookFactory::find(['isbn' => 193847625]),
             'reviewer' => UserFactory::randomOrCreate(),
         ]);
-        $token = $this->getToken([
-            'email' => AuthorFactory::find(['lastname' => 'hooper'])->getAccount()->getEmail(), 
-            'password' => 'password'
-        ]);
-        static::createClientWithCredentials($token)->request('GET',
+        static::createClient()->request('GET',
             sprintf('/books/%s/reviews', BookFactory::find(['isbn' => 193847625])->getId())
         );
         $this->assertResponseIsSuccessful();
@@ -587,90 +608,41 @@ public function testAuthorGetReviewFind(): void
 ```
 
 <!--
-Ici on élimine les variables et utilise Find, ensuite je parle inconvénient
+On utilise Find, ensuite je parle inconvénient de répétition
 -->
 
 ---
 layout: center
-hideInToc: true
 ---
 
 # C'est lourd et on se répète
 
 ---
 layout: center
-hideInToc: true
 ---
 
-```php
-class ReviewTest extends AbstractTest
-{
-    public function testAuthorGetReviewFirst(): void
+```php{3,5,8,10}
+public function testAuthorGetReviewFind(): void
     {
-        BookFactory::new(['authors' => [AuthorFactory::new()]])->create();
+        $book = BookFactory::new()->withIsbn(193847625)->create();
         ReviewFactory::createMany(50, [
-            'book' => BookFactory::first(),
+            'book' => $book,
             'reviewer' => UserFactory::randomOrCreate(),
         ]);
-        $token = $this->getToken(['email' => UserFactory::first()->getEmail(), 'password' => 'password']);
-        static::createClientWithCredentials($token)->request('GET', 
-            sprintf('/books/%s/reviews', BookFactory::first()->getId())
-        );
+        static::createClient()->request('GET',sprintf('/books/%s/reviews', $book->getId()));
         $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', BookFactory::first()->getId())]);
+        $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', $book->getId())]);
     }
-}
-```
-
-<!-- Switch rapidement our highlight les défauts -->
-
----
-layout: center
-hideInToc: true
----
-
-```php{5-13,15}
-class ReviewTest extends AbstractTest
-{
-    public function testAuthorGetReviewFirst(): void
-    {
-        BookFactory::new(['authors' => [AuthorFactory::new()]])->create();
-        ReviewFactory::createMany(50, [
-            'book' => BookFactory::first(),
-            'reviewer' => UserFactory::randomOrCreate(),
-        ]);
-        $token = $this->getToken(['email' => UserFactory::first()->getEmail(), 'password' => 'password']);
-        static::createClientWithCredentials($token)->request('GET', 
-            sprintf('/books/%s/reviews', BookFactory::first()->getId())
-        );
-        $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', BookFactory::first()->getId())]);
-    }
-}
 ```
 
 ---
 layout: center
-level: 2
-title: Les Storys
 ---
 
-## Les storys
+# L'extraire dans une story 
 
 ---
 layout: center
-hideOnToc: true
----
-
-<img src="/make_story.png">
-
-<!--
-Je parle du random après
--->
-
----
-layout: center
-hideInToc: true
 ---
 
 ```php
@@ -689,7 +661,6 @@ final class DefaultReviewsStory extends Story
 
 ---
 layout: center
-hideOnToc: true
 ---
 
 # C'est pas top
@@ -698,7 +669,7 @@ hideOnToc: true
 
 - ça fait pas exactement ce que ça semble dire faire
 - on fait beaucoup de code pour pas grand chose
-- ok faut des preuves
+- ok mais faut des preuves
 
 </v-clicks>
 
@@ -714,18 +685,16 @@ level: 3
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
 class ReviewTest extends AbstractTest
 {
-    public function testAuthorGetReviewsStory(): void
+    public function testGetReviewsStory(): void
     {
         DefaultReviewsStory::load();
         die();
-        $token = $this->getToken(['email' => UserFactory::random()->getEmail(), 'password' => 'password']);
-        static::createClientWithCredentials($token)->request('GET', sprintf('/books/%s/reviews', BookFactory::random()->getId()));
+        static::createClient()->request('GET', sprintf('/books/%s/reviews', BookFactory::random()->getId()));
         $this->assertResponseIsSuccessful();
         $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', BookFactory::random()->getId())]);
     }
@@ -734,14 +703,34 @@ class ReviewTest extends AbstractTest
 
 ---
 layout: full
-hideInToc: true
 ---
 
 <img src="/dump_db_1.png" class="w-full h-full" />
 
 ---
 layout: center
-hideInToc: true
+---
+
+```php
+final class DefaultReviewsStory extends Story
+{
+    public function build(): void
+    {
+        AuthorFactory::new()->withBook()->createMany(10);
+        ReviewFactory::createMany(50, [
+            'book' => BookFactory::random(),
+            'reviewer' => UserFactory::randomOrCreate(),
+        ]);
+    }
+}
+```
+
+<!--
+modif de factory puis story
+-->
+
+---
+layout: center
 ---
 
 ```php
@@ -752,14 +741,13 @@ final class ReviewFactory extends ModelFactory
         return [
             'reviewer' => UserFactory::new(),
             'content' => self::faker()->text(),
-            'book' => BookFactory::randomOrCreate()
+            'book' => UserFactory::new()
         ];
     }
 ```
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -779,36 +767,20 @@ class ReviewTest extends AbstractTest
         DefaultReviewsStory::load();
     }
 
-    public function testAuthorGetReviewsStory(): void
+    public function testGetReviewsStory(): void
     {
-        $token = $this->getToken(['email' => UserFactory::random()->getEmail(), 'password' => 'password']);
-        static::createClientWithCredentials($token)->request('GET', 
-            sprintf('/books/%s/reviews', BookFactory::random()->getId())
+        $book = BookFactory::random();
+        static::createClient()->request('GET', 
+            sprintf('/books/%s/reviews', $book->getId())
         );
         $this->assertResponseIsSuccessful();
-        $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', BookFactory::random()->getId())]);
+        $this->assertJsonContains(['@id' => sprintf('/books/%s/reviews', $book->getId())]);
     }
 }
 ```
-<!-- Oui ça marche... mais parceque j'ai qu'un livre :/ -->
-
 ---
-layout: center
-hideInToc: true
+layout: default
 ---
-
-```php
-final class ReviewFactory extends ModelFactory
-{
-    protected function getDefaults(): array
-    {
-        return [
-            'reviewer' => UserFactory::new(),
-            'content' => self::faker()->text(),
-            'book' => BookFactory::createOne()
-        ];
-    }
-```
 
 ```diff
 --- Expected
@@ -825,18 +797,15 @@ final class ReviewFactory extends ModelFactory
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
 final class DefaultBookStory extends Story
 {
-    public const THE_FAST_TRACK = 'thefasttrack';
-
     public function build(): void
     {
         $this->addState(
-            self::THE_FAST_TRACK,
+            'thefasttrack',
             BookFactory::createOne(['name' => 'The Fast Track'])
         );
     }
@@ -846,9 +815,9 @@ final class DefaultReviewsStory extends Story
 {
     public function build(): void
     {
-        ReviewFactory::createMany(50);
         ReviewFactory::createMany(10, [
-            'book' => DefaultBookStory::get(DefaultBookStory::THE_FAST_TRACK),
+            'book' => DefaultBookStory::get('thefasttrack'),
+            //'book' => DefaultBookStory::$thefasttrack,
         ]);
     }
 }
@@ -856,7 +825,25 @@ final class DefaultReviewsStory extends Story
 
 ---
 layout: center
-hideInToc: true
+---
+
+```php
+final class DefaultBookStory extends Story
+{
+    public const THE_FAST_TRACK = 'thefasttrack'
+    
+    public function build(): void
+    {
+        $this->addState(
+            self::THE_FAST_TRACK,
+            BookFactory::createOne(['name' => 'The Fast Track'])
+        );
+    }
+}
+```
+
+---
+layout: center
 ---
 
 ```php
@@ -870,10 +857,9 @@ class ReviewTest extends AbstractTest
         DefaultReviewsStory::load();
     }
 
-    public function testAuthorGetReviewsStory(): void
+    public function testGetReviewsStory(): void
     {
-        $token = $this->getToken(['email' => UserFactory::random()->getEmail(), 'password' => 'password']);
-        static::createClientWithCredentials($token)->request('GET',
+        static::createClient()->request('GET',
             sprintf(
                 '/books/%s/reviews',
                 DefaultBookStory::get(DefaultBookStory::THE_FAST_TRACK)->getId()
@@ -884,7 +870,8 @@ class ReviewTest extends AbstractTest
             '@id' => sprintf(
                 '/books/%s/reviews',
                 DefaultBookStory::get(DefaultBookStory::THE_FAST_TRACK)->getId()
-            )
+            ),
+            'hydra:totalItems' => 10
         ]);
     }
 }
@@ -901,7 +888,6 @@ title: On peut s'en servir de fixtures (dev/prod)
 
 ---
 layout: center
-hideInToc: true
 ---
 
 ```php
@@ -931,91 +917,178 @@ title: Et dans un vrai projet ?
 
 # Et dans un vrai projet ?
 
+## API-platform
+
+---
+layout: full
+hideInToc: true
+---
+
+```php
+// src/Factory/BookFactory.php
+protected function getDefaults(): array
+{
+    return [
+        'author' => self::faker()->name(),
+        'description' => self::faker()->text(),
+        'isbn' => self::faker()->isbn13(),
+        'publication_date' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+        'title' => self::faker()->sentence(4),
+    ];
+}
+// src/Factory/ReviewFactory.php
+use function Zenstruck\Foundry\lazy;
+
+protected function getDefaults(): array
+{
+    return [
+        'author' => self::faker()->name(),
+        'body' => self::faker()->text(),
+        'book' => lazy(fn() => BookFactory::randomOrCreate()),
+        'publicationDate' => \DateTimeImmutable::createFromMutable(self::faker()->dateTime()),
+        'rating' => self::faker()->numberBetween(0, 5),
+    ];
+}
+```
+
+---
+layout: center
+hideInToc: true
+---
+
+# Lazy permet de s'assurer que la valeur ne sera calculée que si elle est utilisée.
+
+- Default est appelé à chaque fois que la factory est instanciée
+- Permet de limiter les effets de bord
+
+```php
+use Zenstruck\Foundry\Attributes\LazyValue;
+use function Zenstruck\Foundry\lazy;
+
+protected function getDefaults(): array
+{
+    return [
+        'category' => new LazyValue(fn() => CategoryFactory::random()),
+        'file' => lazy(fn() => create_temp_file()), // or use the lazy() helper function
+    ];
+}
+```
+
+---
+layout: center
+hideInToc: true
+---
+
+```php
+// src/Story/DefaultBooksStory.php
+
+final class DefaultBooksStory extends Story
+{
+    public function build(): void
+    {
+        BookFactory::createMany(100);
+    }
+}
+}
+// src/Story/DefaultReviewsStory.php
+
+final class DefaultReviewsStory extends Story
+{
+    public function build(): void
+    {
+        ReviewFactory::createMany(200);
+    }
+}
+
+//src/DataFixtures/AppFixtures.php
+
+class AppFixtures extends Fixture
+{
+    public function load(ObjectManager $manager): void
+    {
+        DefaultBooksStory::load();
+        DefaultReviewsStory::load();
+    }
+}
+```
+
+---
+layout: center
+hideInToc: true
+---
+
+<img src="/doc_apip_alice.png">
+
+---
+layout: center
+hideInToc: true
+---
+
+# Et dans un vrai projet ?
+
 ## Sylius
 
 ---
 layout: default
-hideInToc: true
 ---
 
 ```yaml 
 sylius_fixtures:
-    suites:
-        default: # this key is always called whenever the sylius:fixtures:load command is called, below we are extending it with new fixtures
-            fixtures:
-                currency:
-                    options:
-                        currencies: ['PLN','HUF']
-                channel:
-                    options:
-                        custom:
-                            pl_web_store: # creating new channel
-                                name: "PL Web Store"
-                                code: "PL_WEB"
-                                locales:
-                                    - "%locale%"
-                                currencies:
-                                    - "PLN"
-                                enabled: true
-                                hostname: "localhost"
-                            hun_web_store:
-                                name: "Hun Web Store"
-                                code: "HUN_WEB"
-                                locales:
-                                    - "%locale%"
-                                currencies:
-                                    - "HUF"
-                                enabled: true
-                                hostname: "localhost"
-```
+  suites:
+    default:
+      fixtures:
+        locale:
+          options:
+            locales:
+              - 'en_US'
+              - 'de_DE'
+              - 'fr_FR'
+              - 'pl_PL'
+              - 'es_ES'
+              - 'es_MX'
+              - 'pt_PT'
+              - 'zh_CN'
+        currency:
+          options:
+            currencies:
+              - 'EUR'
+              - 'USD'
+              - 'PLN'
+              - 'CAD'
+              - 'CNY'
+              - 'NZD'
+              - 'GBP'
+              - 'AUD'
+              - 'MXN'
 
----
-layout: default
-hideInToc: true
----
-
-
-```yaml
-
-                shipping_method:
-                    options:
-                        custom:
-                            ups_eu: # creating a new shipping_method and adding channel to it
-                                code: "ups_eu"
-                                name: "UPS_eu"
-                                enabled: true
-                                channels:
-                                    - "PL_WEB"
-                                    - "HUN_WEB"
-                payment_method:
-                    options:
-                        custom:
-                            cash_on_delivery_pl:
-                                code: "cash_on_delivery_eu"
-                                name: "Cash on delivery_eu"
-                                channels:
-                                    - "PL_WEB"
-                            bank_transfer:
-                                code: "bank_transfer_eu"
-                                name: "Bank transfer_eu"
-                                channels:
-                                    - "PL_WEB"
-                                    - "HUN_WEB"
-                                enabled: true
+        geographical:
+          options:
+            countries:
+              - 'US'
+              - 'FR'
+              - 'DE'
+              - 'AU'
+              - 'CA'
+              - 'MX'
+              - 'NZ'
+              - 'PT'
+              - 'ES'
+              - 'CN'
+              - 'GB'
+              - 'PL'
 ```
 
 ---
 layout: center
-title: Faker à la rescousse !
-level: 2
 ---
 
-# Faker à la rescousse !
+# akawakaweb/sylius-fixtures-plugin
 
 ---
 layout: center
-hideInToc: true
 ---
+
+### Cas pratique : Modifier la monnaie par défaut
 
 ```php
 // src/Foundry/Story/DefaultCurrenciesStory.php
@@ -1050,12 +1123,9 @@ when@dev: &fixtures_dev
 
 ---
 layout: default
-hideInToc: true
 ---
 
 ## Je veux ajouter un second numéro de téléphone
-
-### Cas pratique : Modifier la monnaie par défaut
 
 ```php
 // src/Entity/Customer/Customer.php
@@ -1064,9 +1134,6 @@ hideInToc: true
 #[ORM\Table(name: 'sylius_customer')]
 class Customer extends BaseCustomer
 {
-    /**
-     * @ORM\Column
-     */
     #[ORM\Column]
     private ?string $secondPhoneNumber = null;
 
@@ -1084,7 +1151,6 @@ class Customer extends BaseCustomer
 
 ---
 layout: default
-hideInToc: true
 ---
 
 ```php
@@ -1115,11 +1181,12 @@ when@dev: &fixtures_dev
                 $decorated: '@.inner'
 ```
 
+<!-- https://symfony.com/bundles/ZenstruckFoundryBundle/current/index.html#using-your-factory -->
+
 ---
 layout: end
-hideInToc: true
 ---
 
-Disponible prochainement.. rdv le 22 pour la conférence de Loïc Frémont
+Disponible depuis aujourd'hui en 0.1 !
 
-<!-- Remercier Akawaka, le staff notamment Thibault et Grégoire Hebert -->
+<!-- Remercier Akawaka, les tilleuls, le staff notamment Thibault et Grégoire Hebert -->
